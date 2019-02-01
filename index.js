@@ -1,48 +1,31 @@
 //--------- Initialize firestore
-const admin = require('firebase-admin');
 
-var serviceAccount = require('./serviceAccountKey.json');
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
-var db = admin.firestore();
 //--------- Initialize firestore
-
 const express = require('express');
 const app = express();
+const routes = require('./routes');
 
 const PORT = process.env.PORT || 3000;
 
+var bodyParser = require("body-parser");
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 app.use(express.static('./public'));
+app.use('/', routes);
 
 app.listen(PORT, ()=>{
 	console.log('server is live');
 });
 
-app.get('/', (request, response)=>{
-	response.send("HELLO THERE");
-	db.collection('users').get()
-	  .then((snapshot) => {
-	    snapshot.forEach((doc) => {
-	      console.log(doc.id, '=>', doc.data());
-	    });
-	  })
-	  .catch((err) => {
-	    console.log('Error getting documents', err);
-	  });
-});
-
 //--------- Firebase stuff
 
-var test_add = db.collection('users').doc('ertheo');
+// var test_add = db.collection('users').doc('ertheo');
 
-var setTheo = test_add.set(
-{
-	'first' : 'Ertheo',
-	'second' : 'Siswadi',
-	'born' : {'month' : 'MAY', 'year': '2020'}
-});
+// var setTheo = test_add.set(
+// {
+// 	'first' : 'Ertheo',
+// 	'second' : 'Siswadi',
+// 	'born' : {'month' : 'MAY', 'year': '2020'}
+// });
 
 
