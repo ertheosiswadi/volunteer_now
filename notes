@@ -1,0 +1,9 @@
+get_friends
+- make sure no duplicates
+
+add account
+- o and v accounts cannot have the same id
+- make sure no duplicates
+
+get profile summary
+- summary too much info?
