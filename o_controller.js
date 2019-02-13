@@ -19,11 +19,17 @@ module.exports = {
 		});
 	},
 	add_event: async (req, res) => {
-		await ectrl.add_event(req).then(() => {
-			res.send('event added to organization');
+		await ectrl.add_event(req).then(async (event_id) => {
+			await o_ref.doc(req.body.organizer).update({
+				host_events: admin.firestore.FieldValue.arrayUnion(event_id)
+			}).then(() => {
+				res.send('event added by organization ');
+			}).catch((error) => {
+				res.status(500).send(error);
+			});
 		})
 		.catch((error) => {
-			res.status(500).send('failed to add event');
+			res.status(500).send(error);
 		});
 	}
 }

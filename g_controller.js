@@ -7,9 +7,9 @@ const e_ref = db.collection('events');
 
 module.exports = {
 	add_account: async (req, res) => {
-		var u = req.params.username;
-		var p = req.params.password;
-		var t = req.params.type;
+		var u = req.body.username;
+		var p = req.body.password;
+		var t = req.body.type;
 
 		await add_account(u, p, t).then(()=>{
 			res.send('account ' + u + ' created');

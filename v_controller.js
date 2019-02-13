@@ -1,10 +1,11 @@
+var _ = require('lodash/core');
 const admin = require('firebase-admin');
 var db = require('./firestore_init');
 const v_ref = db.collection('volunteers');
 const acc_ref = db.collection('accounts');
 const o_ref = db.collection('organizations');
 const e_ref = db.collection('events');
-
+var ectrl = require('./e_controller');
 
 module.exports = {
 	sayHello: (req, res) => {
@@ -82,14 +83,70 @@ module.exports = {
 	add_register: async(req, res) => {
 		var event_uid = req.body.event_uid;
 		var my_uid = req.body.my_uid;
-
-		await add_favourite(event_uid, my_uid).then(() => {
-			res.send('successfully added event to favourites');
-		}).
-		catch((error) => {
-			res.status(500).send('Error adding event to favourites');
+		
+		//get assets and requirements
+		var assets;
+		var requirements;
+		await get_assets(my_uid).then((val) => {
+			assets = val;
+		}).catch((error) => {
+			res.send(error);
 		});
+
+		await ectrl.get_requirements(event_uid).then((val) => {
+			requirements = val;
+		}).catch((error) => {
+			res.send(error);
+		});
+
+		console.log('v\'s assets: ', assets);
+		console.log('e\'s requirements: ', requirements);
+
+		if(_.isEqual(assets, requirements))
+		{
+			await add_register(event_uid, my_uid).then(() => {
+				res.send('successfully registered to event');
+			}).
+			catch((error) => {
+				res.status(500).send('Error adding registering for');
+			});
+		}
+		else
+		{
+			res.status(500).send('volunteer does not fulfill enough requirements')
+		}
+	},
+	set_assets: async(req, res) => {
+		var my_uid = req.body.my_uid;
+		var assets = req.body.assets;
+		console.log('assets: \n', assets);
+		await v_ref.doc(my_uid).update({
+			assets: assets
+		})
+		.then(() => {
+			res.send('successfully updated volunteer\'s assets');
+		})
+		.catch(() => {
+			res.send('error, updating v\'s assets');
+		})
 	}
+}
+
+async function get_assets(my_uid)
+{
+	var toReturn;
+	await v_ref.doc(my_uid).get().then((doc) => {
+		if(doc.exists)
+		{
+			toReturn = doc.data().assets;
+		}
+		else
+		{
+			throw "document does not exist";
+		}
+	});
+
+	return toReturn;
 }
 
 async function add_register(event_uid, my_uid)
@@ -97,13 +154,14 @@ async function add_register(event_uid, my_uid)
 	var batch = db.batch();
 	var ref1_v = v_ref.doc(my_uid);
 	var ref2_e = e_ref.doc(event_uid);
-	batch.update(ref1_v, {fav_events: admin.firestore.FieldValue.arrayUnion(event_uid)});
-	batch.update(ref2_e, {v_fav: admin.firestore.FieldValue.arrayUnion(my_uid)});
-	// batch.update(ref2_e, {'v_fav': 3});
+	batch.update(ref1_v, {reg_events: admin.firestore.FieldValue.arrayUnion(event_uid)});
+	batch.update(ref2_e, {v_reg: admin.firestore.FieldValue.arrayUnion(my_uid)});
+
 	await batch.commit().then(()=>{
-		console.log('successfully added event to favourites');
+		console.log('successfully registered to event');
 	}).catch((error) => {
-		console.log('Error adding event to favourites', error);
+		throw error;
+		console.log('Error registering event', error);
 	});
 }
 
@@ -111,7 +169,7 @@ async function add_register(event_uid, my_uid)
 async function add_favourite(event_uid, my_uid)
 {
 	var batch = db.batch();
-	
+
 	var ref1_v = v_ref.doc(my_uid);
 	var ref2_e = e_ref.doc(event_uid);
 	batch.update(ref1_v, {fav_events: admin.firestore.FieldValue.arrayUnion(event_uid)});
@@ -120,6 +178,7 @@ async function add_favourite(event_uid, my_uid)
 	await batch.commit().then(()=>{
 		console.log('successfully added event to favourites');
 	}).catch((error) => {
+		throw error;
 		console.log('Error adding event to favourites', error);
 	});
 }
@@ -152,6 +211,7 @@ async function set_basic_details(first_name, last_name, email, uid)
 		console.log("basic details successfully updated");
 	})
 	.catch((error) => {
+		throw error;
 		console.error("Error updating volunteer's basic details: ", error);
 	});
 }
@@ -165,6 +225,7 @@ async function set_rating(rating, uid)
 		console.log("rating successfully updated");
 	})
 	.catch((error) => {
+		throw error;
 		console.log("Error update rating to ", rating, " ", error);
 	});
 }
@@ -200,6 +261,7 @@ async function get_profile_summary(uid)
 			console.log("Error: No such user");
 		}
 	}).catch((error) => {
+		throw error;
 		console.log("Error getting user's document", error);
 	});
 	return toReturn;
@@ -208,7 +270,7 @@ async function get_profile_summary(uid)
 async function get_uid(username) //get uid from username
 {
 	var toReturn;
-	console.log('im here ' + username);
+
 	await v_ref.where("username", "==", username).get()
 		.then((snapshot) => {
 			snapshot.forEach((doc) => {
