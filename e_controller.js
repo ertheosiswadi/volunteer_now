@@ -15,7 +15,7 @@ async function add_event(properties)
 	var date_start = properties.body.date.start;
 	var date_end = properties.body.date.end;
 	var duration_unit = properties.body.duration.unit;
-	var duration_value = properties.body.duration.value;
+	var duration_value = parseFloat(properties.body.duration.value);
 	var requirements = properties.body.requirements;
 	console.log(requirements);
 	var description = properties.body.description;
@@ -33,7 +33,9 @@ async function add_event(properties)
 					},
 					requirements : requirements,
 					description: description,
-					organizer: organizer
+					organizer: organizer,
+					v_fav: [],
+					v_reg: []
 				};
 	console.log(event);
 

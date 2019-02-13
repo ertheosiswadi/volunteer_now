@@ -2,7 +2,8 @@ const admin = require('firebase-admin');
 var db = require('./firestore_init');
 const v_ref = db.collection('volunteers');
 const acc_ref = db.collection('accounts');
-
+const o_ref = db.collection('organizations');
+const e_ref = db.collection('events');
 
 
 module.exports = {
@@ -66,16 +67,76 @@ module.exports = {
 		.catch(()=>{
 			res.status(500).send('failed to add friend');
 		});
+	},
+	add_favourite: async(req, res) => {
+		var event_uid = req.body.event_uid;
+		var my_uid = req.body.my_uid;
+
+		await add_favourite(event_uid, my_uid).then(() => {
+			res.send('successfully added event to favourites');
+		}).
+		catch((error) => {
+			res.status(500).send('Error adding event to favourites');
+		});
+	},
+	add_register: async(req, res) => {
+		var event_uid = req.body.event_uid;
+		var my_uid = req.body.my_uid;
+
+		await add_favourite(event_uid, my_uid).then(() => {
+			res.send('successfully added event to favourites');
+		}).
+		catch((error) => {
+			res.status(500).send('Error adding event to favourites');
+		});
 	}
+}
+
+async function add_register(event_uid, my_uid)
+{
+	var batch = db.batch();
+	var ref1_v = v_ref.doc(my_uid);
+	var ref2_e = e_ref.doc(event_uid);
+	batch.update(ref1_v, {fav_events: admin.firestore.FieldValue.arrayUnion(event_uid)});
+	batch.update(ref2_e, {v_fav: admin.firestore.FieldValue.arrayUnion(my_uid)});
+	// batch.update(ref2_e, {'v_fav': 3});
+	await batch.commit().then(()=>{
+		console.log('successfully added event to favourites');
+	}).catch((error) => {
+		console.log('Error adding event to favourites', error);
+	});
+}
+
+
+async function add_favourite(event_uid, my_uid)
+{
+	var batch = db.batch();
+	
+	var ref1_v = v_ref.doc(my_uid);
+	var ref2_e = e_ref.doc(event_uid);
+	batch.update(ref1_v, {fav_events: admin.firestore.FieldValue.arrayUnion(event_uid)});
+	batch.update(ref2_e, {v_fav: admin.firestore.FieldValue.arrayUnion(my_uid)});
+
+	await batch.commit().then(()=>{
+		console.log('successfully added event to favourites');
+	}).catch((error) => {
+		console.log('Error adding event to favourites', error);
+	});
 }
 
 async function add_friend(friend_uid, my_uid)
 {
-	await v_ref.doc(my_uid).update({
-		friends: admin.firestore.FieldValue.arrayUnion(friend_uid)
-	}).then(() => {
+	var batch = db.batch();
+	var ref1_v = v_ref.doc(my_uid);
+	var ref2_v = v_ref.doc(friend_uid);
+	batch.update(ref1_v, {friends: admin.firestore.FieldValue.arrayUnion(friend_uid)});
+	batch.update(ref2_v, {friends: admin.firestore.FieldValue.arrayUnion(my_uid)});
+
+	await batch.commit()
+	.then(() => {
 		console.log('successfully added friend', friend_uid);
 	}).catch((error) => {
+		throw error;
 		console.log('unable to add friend', friend_uid);
 	});
 }
